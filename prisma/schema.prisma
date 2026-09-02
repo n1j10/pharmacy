@@ -1,0 +1,179 @@
+// ==========================================
+// Prisma Schema - Pharmacy App
+// ==========================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ------------------------------------------
+// المستخدمين والصلاحيات (NextAuth + Prisma Adapter)
+// ------------------------------------------
+
+enum Role {
+  ADMIN
+  SELLER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  phone         String?   @unique
+  phoneVerified DateTime?
+  image         String?
+  role          Role      @default(SELLER)
+
+  accounts Account[]
+  sessions Session[]
+  sales    Sale[]
+
+  createdAt DateTime @default(now())
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ------------------------------------------
+// رموز التحقق (OTP) - للهاتف فقط
+// ------------------------------------------
+
+model OtpCode {
+  id         String   @id @default(cuid())
+  identifier String   // رقم الهاتف
+  code       String   // الرمز (مخزن مشفر بـ bcrypt)
+  expiresAt  DateTime
+  consumed   Boolean  @default(false)
+  attempts   Int      @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([identifier])
+}
+
+// ------------------------------------------
+// الفئات (Categories)
+// ------------------------------------------
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  medicines Medicine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ------------------------------------------
+// الأدوية (Medicines)
+// ------------------------------------------
+
+model Medicine {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  barcode      String   @unique   // الكود الفريد يتولد تلقائي ويتحول لصورة Barcode/QR
+  price        Decimal  @db.Decimal(10, 2)
+  unit         String?             // حبة / علبة / شريط ...الخ
+  manufacturer String?
+  imageUrl     String?
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  batches   Batch[]
+  saleItems SaleItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([barcode])
+  @@index([categoryId])
+}
+
+// ------------------------------------------
+// الدفعات (Batches) - مصدر الحقيقة الوحيد للكمية وتاريخ الصلاحية
+// ------------------------------------------
+
+model Batch {
+  id         String   @id @default(cuid())
+  medicineId String
+  medicine   Medicine @relation(fields: [medicineId], references: [id])
+  quantity   Int      // الكمية المتبقية بهذي الدفعة
+  expiryDate DateTime
+  receivedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  @@index([medicineId])
+  @@index([expiryDate])
+}
+
+// ------------------------------------------
+// المبيعات (Sales) - كل عملية بيع تنقص من دفعات المخزون
+// ------------------------------------------
+
+model Sale {
+  id       String     @id @default(cuid())
+  soldById String
+  soldBy   User       @relation(fields: [soldById], references: [id])
+  items    SaleItem[]
+  total    Decimal    @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+
+  @@index([soldById])
+}
+
+model SaleItem {
+  id          String   @id @default(cuid())
+  saleId      String
+  sale        Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  medicineId  String
+  medicine    Medicine @relation(fields: [medicineId], references: [id])
+  quantity    Int
+  priceAtSale Decimal  @db.Decimal(10, 2)
+
+  @@index([saleId])
+  @@index([medicineId])
+}
