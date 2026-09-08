@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSales } from "@/lib/actions/sale-actions";
-import type { Prisma } from "../../generated/prisma/client";
+import type { Prisma } from "@prisma/client";
 import Container from "@/components/global/Container";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

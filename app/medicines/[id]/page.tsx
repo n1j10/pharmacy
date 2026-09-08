@@ -5,7 +5,7 @@ import { getSessionUser } from "@/lib/session";
 import AddBatchForm from "./add-batch-form";
 import DeleteMedicineButton from "./delete-medicine-button";
 import DeleteBatchButton from "./delete-batch-button";
-import type { Prisma } from "../../../generated/prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import Container from "@/components/global/Container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

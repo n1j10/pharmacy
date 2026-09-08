@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSaleById } from "@/lib/actions/sale-actions";
 import PrintButton from "@/components/ui/print-button";
-import type { Prisma } from "../../../generated/prisma/client";
+import type { Prisma } from "@prisma/client";
 
 export default async function SaleDetailPage({
   params,

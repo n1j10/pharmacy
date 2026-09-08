@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getMedicines } from "@/lib/actions/medicine-actions";
 import { getCategories } from "@/lib/actions/medicine-actions";
 import { getSessionUser } from "@/lib/session";
-import type { Prisma } from "../../generated/prisma/client";
+import type { Prisma } from "@prisma/client";
 import Container from "@/components/global/Container";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

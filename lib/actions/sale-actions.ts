@@ -8,7 +8,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { Prisma, PrismaClient } from "../../generated/prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { getSessionUser, requireAuth } from "@/lib/session";
 
 // ==========================================
