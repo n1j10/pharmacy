@@ -20,9 +20,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    if (process.env.DEV_OTP_BYPASS === "true" && "devCode" in result) {
+    if ("devCode" in result && result.devCode) {
       return NextResponse.json({
-        message: "تم إنشاء الكود",
+        message: "تم إنشاء الكود التجريبي",
         phone: result.phone,
         devCode: result.devCode,
       });

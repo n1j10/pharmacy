@@ -331,6 +331,52 @@ export default function LoginPage() {
                     </>
                   )}
                 </Button>
+
+                {/* Demo Accounts Quick Selection */}
+                <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-3 text-right">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                      كود التحقق: 123456
+                    </span>
+                    <div className="flex items-center gap-1 text-xs font-semibold text-sky-400">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span>حسابات تجريبية سريعة:</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPhone("07700000001");
+                        setError(null);
+                      }}
+                      className={`flex flex-col items-center justify-center rounded-lg border p-2 text-center transition-all ${
+                        phone === "07700000001"
+                          ? "border-sky-400 bg-sky-500/20 text-white shadow-sm shadow-sky-500/20"
+                          : "border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700 hover:bg-slate-800/80"
+                      }`}
+                    >
+                      <span className="text-xs font-bold text-sky-300">👑 مدير النظام</span>
+                      <span dir="ltr" className="text-[11px] font-mono text-slate-400">07700000001</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPhone("07700000002");
+                        setError(null);
+                      }}
+                      className={`flex flex-col items-center justify-center rounded-lg border p-2 text-center transition-all ${
+                        phone === "07700000002"
+                          ? "border-emerald-400 bg-emerald-500/20 text-white shadow-sm shadow-emerald-500/20"
+                          : "border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700 hover:bg-slate-800/80"
+                      }`}
+                    >
+                      <span className="text-xs font-bold text-emerald-300">🛒 بائع تجريبي</span>
+                      <span dir="ltr" className="text-[11px] font-mono text-slate-400">07700000002</span>
+                    </button>
+                  </div>
+                </div>
               </form>
             )}
 

@@ -9,8 +9,27 @@ const MAX_ATTEMPTS = 5;
 const MAX_SENDS_PER_WINDOW = 5;
 const SEND_WINDOW_MS = 15 * 60 * 1000;
 
-export function generateOtpCode(): string {
-  if (process.env.DEV_OTP_BYPASS === "true") {
+export const DEMO_PHONES = [
+  "07700000001",
+  "07700000002",
+  "07700000000",
+  "9647700000001",
+  "9647700000002",
+  "9647700000000",
+];
+
+export function isDemoPhone(rawPhone: string): boolean {
+  const norm = normalizePhone(rawPhone);
+  const clean = rawPhone.trim().replace(/\D/g, "");
+  return (
+    DEMO_PHONES.includes(rawPhone.trim()) ||
+    (norm !== null && DEMO_PHONES.includes(norm)) ||
+    DEMO_PHONES.some((d) => d.replace(/\D/g, "") === clean)
+  );
+}
+
+export function generateOtpCode(identifier?: string): string {
+  if (process.env.DEV_OTP_BYPASS === "true" || (identifier && isDemoPhone(identifier))) {
     return "123456";
   }
   return crypto.randomInt(100000, 999999).toString();
@@ -22,6 +41,8 @@ export async function createOtp(rawIdentifier: string) {
     return { success: false as const, error: "رقم الهاتف غير صالح. استخدم 07xxxxxxxxx" };
   }
 
+  const isDemo = isDemoPhone(identifier) || process.env.DEV_OTP_BYPASS === "true";
+
   const recentCount = await prisma.otpCode.count({
     where: {
       identifier,
@@ -29,14 +50,14 @@ export async function createOtp(rawIdentifier: string) {
     },
   });
 
-  if (recentCount >= MAX_SENDS_PER_WINDOW) {
+  if (!isDemo && recentCount >= MAX_SENDS_PER_WINDOW) {
     return {
       success: false as const,
       error: "تجاوزت عدد محاولات إرسال الكود. حاول بعد ربع ساعة.",
     };
   }
 
-  const code = generateOtpCode();
+  const code = isDemo ? "123456" : generateOtpCode(identifier);
   const hashedCode = await bcrypt.hash(code, 10);
   const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
@@ -48,22 +69,22 @@ export async function createOtp(rawIdentifier: string) {
     data: { identifier, code: hashedCode, expiresAt },
   });
 
-  await sendOtpSms(identifier, code);
+  if (!isDemo) {
+    await sendOtpSms(identifier, code);
+  }
 
   return {
     success: true as const,
     phone: identifier,
-    ...(process.env.DEV_OTP_BYPASS === "true" ? { devCode: code } : {}),
+    ...(isDemo ? { devCode: code } : {}),
   };
 }
 
 export async function verifyOtp(rawIdentifier: string, code: string) {
   const identifier = normalizePhone(rawIdentifier) ?? rawIdentifier.trim();
+  const isDemo = isDemoPhone(identifier) || isDemoPhone(rawIdentifier) || process.env.DEV_OTP_BYPASS === "true";
 
-  if (
-    process.env.DEV_OTP_BYPASS === "true" &&
-    (code === "123456" || code === "000000")
-  ) {
+  if (isDemo && (code === "123456" || code === "000000")) {
     return { success: true, message: "تم التحقق بنجاح (كود تجريبي)", phone: identifier } as const;
   }
 
