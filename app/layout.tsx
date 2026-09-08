@@ -4,7 +4,7 @@ import Providers from "./providers";
 import MainLayout from "@/components/layout/MainLayout";
 
 export const metadata: Metadata = {
-  title: "نظام إدارة الصيدلية - PharmaSys",
+  title: "نظام إدارة الصيدلية - PharmaSys ",
   description: "نظام شامل ومتطور لإدارة الأدوية والمخزون والمبيعات الصيدلانية",
 };
 

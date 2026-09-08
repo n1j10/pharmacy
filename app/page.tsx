@@ -110,7 +110,7 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actionss */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Link href="/medicines" className="block group">
           <Card className="hover:border-primary/50 transition-all shadow-md bg-card/80 backdrop-blur border-white/10">

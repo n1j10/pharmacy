@@ -261,4 +261,4 @@ export default function MedicineForm({ categories }: { categories: Category[] })
     </form>
   );
 }
-//turn into component
+//turn into components
