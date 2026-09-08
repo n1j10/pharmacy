@@ -31,6 +31,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: "تم إرسال الكود", phone: result.phone });
   } catch (error) {
     console.error("OTP send error:", error);
-    return NextResponse.json({ error: "فشل إرسال الكود" }, { status: 500 });
+    const message =
+      error instanceof Error ? error.message : "فشل إرسال الكود";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

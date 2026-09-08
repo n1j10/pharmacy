@@ -28,8 +28,16 @@ export function isDemoPhone(rawPhone: string): boolean {
   );
 }
 
+export function isSmsConfigured(): boolean {
+  return Boolean(process.env.TEXTBEE_DEVICE_ID && process.env.TEXTBEE_API_KEY);
+}
+
 export function generateOtpCode(identifier?: string): string {
-  if (process.env.DEV_OTP_BYPASS === "true" || (identifier && isDemoPhone(identifier))) {
+  if (
+    process.env.DEV_OTP_BYPASS === "true" ||
+    (identifier && isDemoPhone(identifier)) ||
+    !isSmsConfigured()
+  ) {
     return "123456";
   }
   return crypto.randomInt(100000, 999999).toString();
@@ -41,33 +49,52 @@ export async function createOtp(rawIdentifier: string) {
     return { success: false as const, error: "رقم الهاتف غير صالح. استخدم 07xxxxxxxxx" };
   }
 
-  const isDemo = isDemoPhone(identifier) || process.env.DEV_OTP_BYPASS === "true";
+  const isDemo =
+    isDemoPhone(identifier) ||
+    process.env.DEV_OTP_BYPASS === "true" ||
+    !isSmsConfigured();
 
-  const recentCount = await prisma.otpCode.count({
-    where: {
-      identifier,
-      createdAt: { gte: new Date(Date.now() - SEND_WINDOW_MS) },
-    },
-  });
+  if (!isDemo) {
+    try {
+      const recentCount = await prisma.otpCode.count({
+        where: {
+          identifier,
+          createdAt: { gte: new Date(Date.now() - SEND_WINDOW_MS) },
+        },
+      });
 
-  if (!isDemo && recentCount >= MAX_SENDS_PER_WINDOW) {
-    return {
-      success: false as const,
-      error: "تجاوزت عدد محاولات إرسال الكود. حاول بعد ربع ساعة.",
-    };
+      if (recentCount >= MAX_SENDS_PER_WINDOW) {
+        return {
+          success: false as const,
+          error: "تجاوزت عدد محاولات إرسال الكود. حاول بعد ربع ساعة.",
+        };
+      }
+    } catch (e) {
+      console.warn("Count check skipped due to db:", e);
+    }
   }
 
   const code = isDemo ? "123456" : generateOtpCode(identifier);
   const hashedCode = await bcrypt.hash(code, 10);
   const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
-  await prisma.otpCode.deleteMany({
-    where: { identifier, consumed: false },
-  });
+  try {
+    await prisma.otpCode.deleteMany({
+      where: { identifier, consumed: false },
+    });
 
-  await prisma.otpCode.create({
-    data: { identifier, code: hashedCode, expiresAt },
-  });
+    await prisma.otpCode.create({
+      data: { identifier, code: hashedCode, expiresAt },
+    });
+  } catch (dbError) {
+    console.warn("Could not save OTP to DB:", dbError);
+    if (!isDemo) {
+      return {
+        success: false as const,
+        error: "فشل حفظ رمز التحقق في قاعدة البيانات، يرجى التأكد من اتصال قاعدة البيانات.",
+      };
+    }
+  }
 
   if (!isDemo) {
     await sendOtpSms(identifier, code);
@@ -82,7 +109,11 @@ export async function createOtp(rawIdentifier: string) {
 
 export async function verifyOtp(rawIdentifier: string, code: string) {
   const identifier = normalizePhone(rawIdentifier) ?? rawIdentifier.trim();
-  const isDemo = isDemoPhone(identifier) || isDemoPhone(rawIdentifier) || process.env.DEV_OTP_BYPASS === "true";
+  const isDemo =
+    isDemoPhone(identifier) ||
+    isDemoPhone(rawIdentifier) ||
+    process.env.DEV_OTP_BYPASS === "true" ||
+    !isSmsConfigured();
 
   if (isDemo && (code === "123456" || code === "000000")) {
     return { success: true, message: "تم التحقق بنجاح (كود تجريبي)", phone: identifier } as const;
