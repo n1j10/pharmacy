@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteBatch } from "@/lib/actions/medicine-actions";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 
 export default function DeleteBatchButton({ batchId }: { batchId: string }) {
   const router = useRouter();
@@ -25,13 +27,17 @@ export default function DeleteBatchButton({ batchId }: { batchId: string }) {
   }
 
   return (
-    <button
+    <Button
       type="button"
       onClick={handleDelete}
       disabled={loading}
-      className="btn btn-danger btn-sm"
+      variant="destructive"
+      size="sm"
     >
-      {loading ? "..." : "حذف"}
-    </button>
+      {loading ? "..." : <Trash2 className="w-4 h-4" />}
+    </Button>
   );
 }
+
+
+// turn into component

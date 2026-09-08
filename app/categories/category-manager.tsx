@@ -7,6 +7,10 @@ import {
   updateCategory,
   deleteCategory,
 } from "@/lib/actions/medicine-actions";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, Plus, FolderTree, Edit2, Trash2, Check, X } from "lucide-react";
 
 type Category = {
   id: string;
@@ -14,16 +18,13 @@ type Category = {
   _count?: { medicines: number };
 };
 
-export default function CategoryManager({
-  initialCategories,
-}: {
-  initialCategories: Category[];
-}) {
+export default function CategoryManager({initialCategories,}: {initialCategories: Category[];}) {
   const router = useRouter();
 
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -35,7 +36,6 @@ export default function CategoryManager({
       setError("اسم الفئة مطلوب");
       return;
     }
-
     setLoading(true);
     const result = await createCategory(newName);
     setLoading(false);
@@ -44,26 +44,21 @@ export default function CategoryManager({
       setError(result.error);
       return;
     }
-
     setNewName("");
     router.refresh();
   }
 
   async function handleUpdate(id: string) {
     setError(null);
-
     if (!editingName.trim()) {
       setError("اسم الفئة مطلوب");
       return;
     }
-
     const result = await updateCategory(id, editingName);
-
     if (!result.success) {
       setError(result.error);
       return;
     }
-
     setEditingId(null);
     router.refresh();
   }
@@ -83,141 +78,132 @@ export default function CategoryManager({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+    <div className="flex flex-col gap-6">
       {/* Add Form */}
       <form
         onSubmit={handleAdd}
-        style={{ display: "flex", gap: "0.75rem" }}
+        className="flex gap-3"
       >
-        <input
+        <Input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="اسم فئة جديدة..."
-          className="form-input"
-          style={{ flex: 1 }}
+          className="flex-1"
         />
-        <button
+        <Button
           disabled={loading}
           type="submit"
-          className="btn btn-primary"
+          className="gap-2"
         >
-          {loading ? "جاري الإضافة..." : "➕ إضافة"}
-        </button>
+          <Plus className="w-4 h-4" />
+          {loading ? "جاري الإضافة..." : "إضافة"}
+        </Button>
       </form>
 
       {/* Error */}
       {error && (
-        <div className="alert alert-error">
-          <span>❌</span>
-          <span>{error}</span>
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {/* Categories List */}
-      <div
-        style={{
-          border: "1px solid var(--dark-border)",
-          borderRadius: 12,
-          overflow: "hidden",
-          background: "rgba(255,255,255,0.02)",
-        }}
-      >
+      <div className="border border-border/50 rounded-xl overflow-hidden bg-background/50">
         {initialCategories.length === 0 ? (
-          <div className="empty-state" style={{ padding: "2rem" }}>
-            <div className="empty-state-icon" style={{ fontSize: "2rem" }}>🗂️</div>
-            <div className="empty-state-title">لا توجد فئات بعد</div>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <FolderTree className="w-12 h-12 text-muted-foreground/30 mb-3" />
+            <h3 className="text-lg font-bold text-foreground">لا توجد فئات بعد</h3>
+            <p className="text-sm text-muted-foreground mt-1">ابدأ بإضافة أول فئة أعلاه</p>
           </div>
         ) : (
-          initialCategories.map((cat) => (
-            <div key={cat.id} className="category-item">
-              {editingId === cat.id ? (
-                <input
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  className="form-input"
-                  style={{ flex: 1, marginLeft: "0.75rem" }}
-                  autoFocus
-                />
-              ) : (
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
-                >
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: "rgba(14,165,233,0.1)",
-                      border: "1px solid rgba(14,165,233,0.15)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "0.9rem",
-                    }}
-                  >
-                    🗂️
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 600, color: "#e2e8f0" }}>
-                      {cat.name}
-                    </div>
-                    {cat._count && (
-                      <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
-                        {cat._count.medicines} دواء
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+          <div className="divide-y divide-border/50">
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: "0.5rem",
-                  flexShrink: 0,
-                  marginRight: editingId === cat.id ? 0 : "auto",
-                  marginLeft: 0,
-                }}
-              >
+
+            {initialCategories.map((cat) => (
+              <div key={cat.id} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 hover:bg-muted/30 transition-colors">
+
+
                 {editingId === cat.id ? (
-                  <>
-                    <button
-                      onClick={() => handleUpdate(cat.id)}
-                      className="btn btn-success btn-sm"
-                    >
-                      ✓ حفظ
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="btn btn-secondary btn-sm"
-                    >
-                      إلغاء
-                    </button>
-                  </>
+                  <Input
+                    value={editingName}
+                    onChange={(e) => setEditingName(e.target.value)}
+                    className="flex-1 sm:ml-3"
+                    autoFocus
+                  />
                 ) : (
-                  <>
-                    <button
-                      onClick={() => {
-                        setEditingId(cat.id);
-                        setEditingName(cat.name);
-                      }}
-                      className="btn btn-secondary btn-sm"
-                    >
-                      ✏️ تعديل
-                    </button>
-                    <button
-                      onClick={() => handleDelete(cat.id)}
-                      className="btn btn-danger btn-sm"
-                    >
-                      🗑️ حذف
-                    </button>
-                  </>
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                      <FolderTree className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-foreground">
+                        {cat.name}
+                      </div>
+                      {cat._count !== undefined && (
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {cat._count.medicines} دواء
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
+
+                <div
+                  className={`flex gap-2 shrink-0 ${
+                    editingId === cat.id ? "mr-0" : "sm:mr-auto"
+                  }`}
+                >
+                  {editingId === cat.id ? (
+                    <>
+                      <Button
+                        onClick={() => handleUpdate(cat.id)}
+                        variant="default"
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                      >
+                        <Check className="w-4 h-4" /> حفظ
+                      </Button>
+                      <Button
+                        onClick={() => setEditingId(null)}
+                        variant="secondary"
+                        size="sm"
+                        className="gap-1"
+                      >
+                        <X className="w-4 h-4" /> إلغاء
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => {
+                          setEditingId(cat.id);
+                          setEditingName(cat.name);
+                        }}
+                        variant="secondary"
+                        size="sm"
+                        className="gap-1"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" /> تعديل
+                      </Button>
+                      <Button
+                        onClick={() => handleDelete(cat.id)}
+                        variant="destructive"
+                        size="sm"
+                        className="gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> حذف
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </div>
   );
 }
+
+//turn into components

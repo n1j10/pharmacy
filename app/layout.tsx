@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "./providers";
-import Sidebar from "@/components/layout/Sidebar";
+import MainLayout from "@/components/layout/MainLayout";
 
 export const metadata: Metadata = {
-  title: "نظام إدارة الصيدلية",
-  description: "إدارة الأدوية والمخزون والمبيعات",
+  title: "نظام إدارة الصيدلية - PharmaSys",
+  description: "نظام شامل ومتطور لإدارة الأدوية والمخزون والمبيعات الصيدلانية",
 };
 
 export default function RootLayout({
@@ -21,10 +21,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>
+      <body className="min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground">
         <Providers>
-          <Sidebar />
-          <div className="main-content">{children}</div>
+          <MainLayout>{children}</MainLayout>
         </Providers>
       </body>
     </html>

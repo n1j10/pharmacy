@@ -74,6 +74,7 @@ export async function createCategory(name: string) {
     }
 
     const existing = await prisma.category.findUnique({ where: { name } });
+  
     if (existing) {
       return { success: false, error: "هذي الفئة موجودة مسبقاً" } as const;
     }
@@ -159,16 +160,14 @@ function sellableQuantity(
   }, 0);
 }
 
-export async function getMedicines(options?: {
-  categoryId?: string;
-  search?: string;
-}) {
+export async function getMedicines(options?: {categoryId?: string;search?: string;}) {
   try {
     const search = options?.search?.trim();
 
     const medicines = await prisma.medicine.findMany({
       where: {
         categoryId: options?.categoryId || undefined,
+
         ...(search
           ? {
               OR: [
@@ -182,15 +181,14 @@ export async function getMedicines(options?: {
       include: {
         category: true,
         batches: {
-          orderBy: { expiryDate: "asc" }, // الأقرب للانتهاء أول (FEFO)
+          orderBy: { expiryDate: "asc" }, 
         },
       },
       orderBy: { createdAt: "desc" },
     });
 
     // الكمية القابلة للبيع فقط (نتجاهل الدفعات المنتهية)
-    const medicinesWithStock = medicines.map((medicine) => ({
-      ...medicine,
+    const medicinesWithStock = medicines.map((medicine: typeof medicines[number]) => ({...medicine,
       totalQuantity: sellableQuantity(medicine.batches),
     }));
 
@@ -199,6 +197,8 @@ export async function getMedicines(options?: {
     return { success: false, error: "فشل جلب الأدوية" } as const;
   }
 }
+
+
 
 export async function getMedicineById(id: string) {
   try {
@@ -293,6 +293,7 @@ export async function createMedicine(input: CreateMedicineInput) {
     const category = await prisma.category.findUnique({
       where: { id: input.categoryId },
     });
+    
     if (!category) {
       return { success: false, error: "الفئة المحددة غير موجودة" } as const;
     }
@@ -414,13 +415,13 @@ export async function getInventoryStats() {
       }),
     ]);
 
-    const withStock = medicines.map((medicine) => ({
+    const withStock = medicines.map((medicine: typeof medicines[number]) => ({
       totalQuantity: sellableQuantity(medicine.batches),
     }));
 
-    const outOfStock = withStock.filter((m) => m.totalQuantity === 0).length;
+    const outOfStock = withStock.filter((m: { totalQuantity: number }) => m.totalQuantity === 0).length;
     const lowStock = withStock.filter(
-      (m) => m.totalQuantity > 0 && m.totalQuantity < 10
+      (m: { totalQuantity: number }) => m.totalQuantity > 0 && m.totalQuantity < 10
     ).length;
 
     return {

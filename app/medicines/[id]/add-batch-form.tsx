@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBatch } from "@/lib/actions/medicine-actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { AlertCircle, Plus } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function AddBatchForm({ medicineId }: { medicineId: string }) {
   const router = useRouter();
@@ -49,51 +55,56 @@ export default function AddBatchForm({ medicineId }: { medicineId: string }) {
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="btn btn-primary btn-sm">
-        + إضافة دفعة جديدة
-      </button>
+      <Button type="button" onClick={() => setOpen(true)} className="gap-2">
+        <Plus className="w-4 h-4" /> إضافة دفعة جديدة
+      </Button>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="form-section" dir="rtl" style={{ maxWidth: 420 }}>
-      <div className="form-section-body" style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
-        {error && (
-          <div className="alert alert-error">
-            <span>❌</span>
-            <span>{error}</span>
+    <Card className="max-w-md border-border/50 shadow-sm mt-4 bg-card/50">
+      <CardContent className="pt-6">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="grid gap-2">
+            <Label htmlFor="quantity">الكمية</Label>
+            <Input
+              id="quantity"
+              type="number"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="مثال: 50"
+            />
           </div>
-        )}
 
-        <div className="form-group">
-          <label className="form-label">الكمية</label>
-          <input
-            type="number"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            className="form-input"
-          />
-        </div>
+          <div className="grid gap-2">
+            <Label htmlFor="expiryDate">تاريخ الانتهاء</Label>
+            <Input
+              id="expiryDate"
+              type="date"
+              value={expiryDate}
+              onChange={(e) => setExpiryDate(e.target.value)}
+            />
+          </div>
 
-        <div className="form-group">
-          <label className="form-label">تاريخ الانتهاء</label>
-          <input
-            type="date"
-            value={expiryDate}
-            onChange={(e) => setExpiryDate(e.target.value)}
-            className="form-input"
-          />
-        </div>
-
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button type="submit" disabled={loading} className="btn btn-primary">
-            {loading ? "جاري الحفظ..." : "حفظ الدفعة"}
-          </button>
-          <button type="button" onClick={() => setOpen(false)} className="btn btn-secondary">
-            إلغاء
-          </button>
-        </div>
-      </div>
-    </form>
+          <div className="flex gap-3 pt-2">
+            <Button type="submit" disabled={loading} className="flex-1">
+              {loading ? "جاري الحفظ..." : "حفظ الدفعة"}
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setOpen(false)} className="flex-1">
+              إلغاء
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
+
+// turn into component

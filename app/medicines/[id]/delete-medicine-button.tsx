@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteMedicine } from "@/lib/actions/medicine-actions";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 
 export default function DeleteMedicineButton({
   medicineId,
@@ -36,18 +38,22 @@ export default function DeleteMedicineButton({
 
   return (
     <div>
-      <button
+      <Button
         onClick={handleDelete}
         disabled={loading}
-        className="btn btn-danger"
+        variant="destructive"
+        className="gap-2"
       >
+        <Trash2 className="w-4 h-4" />
         {loading ? "جاري الحذف..." : "حذف"}
-      </button>
+      </Button>
       {error && (
-        <p style={{ color: "#f87171", fontSize: "0.85rem", marginTop: "0.35rem" }}>
+        <p className="text-red-500 text-sm mt-1">
           {error}
         </p>
       )}
     </div>
   );
 }
+
+// turn into component

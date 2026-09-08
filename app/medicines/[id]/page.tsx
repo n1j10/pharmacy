@@ -5,11 +5,16 @@ import { getSessionUser } from "@/lib/session";
 import AddBatchForm from "./add-batch-form";
 import DeleteMedicineButton from "./delete-medicine-button";
 import DeleteBatchButton from "./delete-batch-button";
+import type { Prisma } from "../../../generated/prisma/client";
 
-export default async function MedicineDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
+import Container from "@/components/global/Container";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { ArrowRight, Printer, Edit, QrCode, Calendar, Clock, AlertTriangle, AlertCircle, CheckCircle, Layers } from "lucide-react";
+
+export default async function MedicineDetailPage({params,}: {params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
 
@@ -20,200 +25,266 @@ export default async function MedicineDetailPage({
   }
 
   const isAdmin = user?.role === "ADMIN";
-  const medicine = result.data;
+
+  type MedicineDetail = Prisma.MedicineGetPayload<{
+    include: {
+      category: true;
+      batches: true;
+      saleItems: { include: { sale: { include: { soldBy: true } } } };
+    };
+  }> & { totalQuantity: number };
+
+  const medicine = result.data as MedicineDetail;
   const today = new Date();
 
   return (
-    <div className="page-container fade-in" dir="rtl">
-      <div className="page-header">
+    <Container className="py-8">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
-          <Link href="/medicines" className="link-primary" style={{ fontSize: "0.85rem" }}>
-            ← الرجوع لقائمة الأدوية
-          </Link>
-          <h1 className="page-title" style={{ marginTop: "0.5rem" }}>
+          <Button asChild variant="link" className="p-0 h-auto mb-2 text-muted-foreground hover:text-primary">
+            <Link href="/medicines" className="flex items-center gap-1">
+              <ArrowRight className="w-4 h-4" /> الرجوع لقائمة الأدوية
+            </Link>
+          </Button>
+          <h1 className="text-3xl font-extrabold tracking-tight">
             {medicine.name}
           </h1>
-          <p className="page-subtitle">{medicine.category.name}</p>
+          <p className="text-muted-foreground mt-2 flex items-center gap-2">
+            <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
+              {medicine.category.name}
+            </Badge>
+          </p>
         </div>
 
         {isAdmin && (
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            <Link href={`/medicines/${medicine.id}/barcode`} className="btn btn-primary">
-              طباعة QR
-            </Link>
-            <Link href={`/medicines/${medicine.id}/edit`} className="btn btn-secondary">
-              تعديل
-            </Link>
+          <div className="flex gap-2 flex-wrap">
+            <Button asChild variant="outline" className="gap-2">
+              <Link href={`/medicines/${medicine.id}/barcode`}>
+                <QrCode className="w-4 h-4" />
+                طباعة QR
+              </Link>
+            </Button>
+            <Button asChild variant="secondary" className="gap-2">
+              <Link href={`/medicines/${medicine.id}/edit`}>
+                <Edit className="w-4 h-4" />
+                تعديل
+              </Link>
+            </Button>
             <DeleteMedicineButton medicineId={medicine.id} />
           </div>
         )}
       </div>
 
-      <div className="grid-4" style={{ marginBottom: "1.5rem" }}>
-        <InfoCard label="السعر" value={`${medicine.price.toString()} د.ع`} />
+      {/* Info Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <InfoCard label="السعر" value={`${medicine.price.toString()} د.ع`} icon="💰" />
+
         <InfoCard
           label="الكمية القابلة للبيع"
           value={medicine.totalQuantity.toString()}
+          icon="📦"
           highlight={
-            medicine.totalQuantity === 0
-              ? "danger"
-              : medicine.totalQuantity < 10
+            medicine.totalQuantity === 0 ? "danger" : medicine.totalQuantity < 10
                 ? "warning"
                 : "success"
           }
         />
-        <InfoCard label="الوحدة" value={medicine.unit || "—"} />
-        <InfoCard label="الشركة المصنعة" value={medicine.manufacturer || "—"} />
+        <InfoCard label="الوحدة" value={medicine.unit || "—"} icon="⚖️" />
+        <InfoCard label="الشركة المصنعة" value={medicine.manufacturer || "—"} icon="🏭" />
       </div>
 
+      {/* Description */}
       {medicine.description && (
-        <div className="card" style={{ marginBottom: "1.5rem" }}>
-          <div className="card-body" style={{ color: "#94a3b8" }}>
+        <Card className="mb-8 border-white/10 shadow-sm bg-card/80">
+          <CardContent className="p-6 text-muted-foreground leading-relaxed">
             {medicine.description}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
-      <div className="card" style={{ marginBottom: "1.5rem" }}>
-        <div className="card-header">
+      {/* Barcode Block */}
+      <Card className="mb-8 border-white/10 shadow-sm overflow-hidden relative group">
+        <div className="absolute top-0 right-0 w-1 h-full bg-blue-500 opacity-50" />
+        <CardHeader className="flex flex-row items-center justify-between pb-4 bg-muted/30">
           <div>
-            <p className="card-title">الباركود الخاص بهذا الدواء</p>
-            <p style={{ fontFamily: "monospace", color: "#38bdf8", marginTop: "0.25rem" }}>
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-blue-500" />
+              الباركود الخاص بهذا الدواء
+            </CardTitle>
+            <p className="font-mono text-blue-400 mt-2 text-lg bg-blue-500/10 px-3 py-1 rounded inline-block">
               {medicine.barcode}
             </p>
           </div>
           {isAdmin && (
-            <Link href={`/medicines/${medicine.id}/barcode`} className="btn btn-secondary btn-sm">
-              طباعة الملصق
-            </Link>
+            <Button asChild variant="outline" size="sm" className="gap-2 shrink-0">
+              <Link href={`/medicines/${medicine.id}/barcode`}>
+                <Printer className="w-4 h-4" />
+                طباعة الملصق
+              </Link>
+            </Button>
           )}
-        </div>
-      </div>
+        </CardHeader>
+      </Card>
 
-      <div className="card" style={{ marginBottom: "1.5rem" }}>
-        <div className="card-header">
-          <h2 className="card-title">الدفعات</h2>
-        </div>
-        <div className="card-body">
-          {medicine.batches.length === 0 && (
-            <p style={{ color: "#64748b", marginBottom: "1rem" }}>ماكو دفعات مسجلة لهذا الدواء</p>
-          )}
-
-          {medicine.batches.length > 0 && (
-            <div className="table-container" style={{ marginBottom: "1rem" }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>الكمية المتبقية</th>
-                    <th>تاريخ الانتهاء</th>
-                    <th>تاريخ الاستلام</th>
-                    <th>الحالة</th>
-                    {isAdmin && <th></th>}
-                  </tr>
-                </thead>
-                <tbody>
+      {/* Batches Table */}
+      <Card className="mb-8 border-white/10 shadow-md">
+        <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 pb-4">
+          <CardTitle className="text-xl font-bold flex items-center gap-2">
+            <Layers className="w-5 h-5 text-primary" />
+            الدفعات
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {medicine.batches.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              ماكو دفعات مسجلة لهذا الدواء
+            </div>
+          ) : (
+            <div className="rounded-md border border-border/50 overflow-hidden mb-6">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="text-right">الكمية المتبقية</TableHead>
+                    <TableHead className="text-right">تاريخ الانتهاء</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">تاريخ الاستلام</TableHead>
+                    <TableHead className="text-right">الحالة</TableHead>
+                    {isAdmin && <TableHead></TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {medicine.batches.map((batch) => {
                     const expiryDate = new Date(batch.expiryDate);
                     const isExpired = expiryDate < today;
-                    const daysLeft = Math.ceil(
-                      (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-                    );
+              const daysLeft = Math.ceil(
+                      (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
                     const isExpiringSoon = !isExpired && daysLeft <= 30;
 
                     return (
-                      <tr key={batch.id}>
-                        <td>{batch.quantity}</td>
-                        <td>{expiryDate.toLocaleDateString("ar-IQ")}</td>
-                        <td style={{ color: "#64748b" }}>
+                      <TableRow key={batch.id}>
+                        <TableCell className="font-bold">{batch.quantity}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                            {expiryDate.toLocaleDateString("ar-IQ")}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground hidden sm:table-cell">
                           {new Date(batch.receivedAt).toLocaleDateString("ar-IQ")}
-                        </td>
-                        <td>
-                          {isExpired && <span className="badge badge-red">منتهية</span>}
-                          {isExpiringSoon && (
-                            <span className="badge badge-orange">تنتهي خلال {daysLeft} يوم</span>
+                        </TableCell>
+                        <TableCell>
+                          {isExpired ? (
+                            <Badge variant="destructive" className="bg-red-500/10 text-red-500 hover:bg-red-500/20 gap-1 border-red-500/20">
+                              <AlertCircle className="w-3 h-3" /> منتهية
+                            </Badge>
+                          ) : isExpiringSoon ? (
+                            <Badge variant="outline" className="bg-amber-500/10 text-amber-500 gap-1 border-amber-500/20">
+                              <Clock className="w-3 h-3" /> تنتهي خلال {daysLeft} يوم
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 gap-1 border-emerald-500/20">
+                              <CheckCircle className="w-3 h-3" /> سليمة
+                            </Badge>
                           )}
-                          {!isExpired && !isExpiringSoon && (
-                            <span className="badge badge-green">سليمة</span>
-                          )}
-                        </td>
+                        </TableCell>
+
                         {isAdmin && (
-                          <td>
+                          <TableCell className="text-left">
                             <DeleteBatchButton batchId={batch.id} />
-                          </td>
+                          </TableCell>
                         )}
-                      </tr>
+                      </TableRow>
                     );
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
 
           {isAdmin && <AddBatchForm medicineId={medicine.id} />}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">آخر المبيعات</h2>
-        </div>
-        {medicine.saleItems.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-title">ماكو مبيعات مسجلة بعد لهذا الدواء</div>
-          </div>
-        ) : (
-          <div className="table-container" style={{ border: "none" }}>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>التاريخ</th>
-                  <th>الكمية</th>
-                  <th>السعر وقت البيع</th>
-                  <th>البائع</th>
-                </tr>
-              </thead>
-              <tbody>
+      {/* Sales Table */}
+      <Card className="border-white/10 shadow-md">
+        <CardHeader className="border-b border-border/50 pb-4">
+          <CardTitle className="text-xl font-bold flex items-center gap-2">
+            <span className="text-xl">🧾</span>
+            آخر المبيعات
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {medicine.saleItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <span className="text-4xl mb-3 opacity-50">🧾</span>
+              <p className="text-muted-foreground">ماكو مبيعات مسجلة بعد لهذا الدواء</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">التاريخ</TableHead>
+                  <TableHead className="text-right">الكمية</TableHead>
+                  <TableHead className="text-right">السعر وقت البيع</TableHead>
+                  <TableHead className="text-right">البائع</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {medicine.saleItems.map((item) => (
-                  <tr key={item.id}>
-                    <td>{new Date(item.sale.createdAt).toLocaleDateString("ar-IQ")}</td>
-                    <td>{item.quantity}</td>
-                    <td>{item.priceAtSale.toString()} د.ع</td>
-                    <td>{item.sale.soldBy.name || "—"}</td>
-                  </tr>
+                  <TableRow key={item.id}>
+                    <TableCell className="text-muted-foreground py-4">
+                      {new Date(item.sale.createdAt).toLocaleDateString("ar-IQ")}
+                    </TableCell>
+                    <TableCell className="font-bold text-blue-400 py-4">{item.quantity}</TableCell>
+                    <TableCell className="py-4 font-medium">{item.priceAtSale.toString()} د.ع</TableCell>
+                    <TableCell className="py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white">
+                          {(item.sale.soldBy.name || "م").charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-medium text-foreground">{item.sale.soldBy.name || "—"}</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </Container>
   );
 }
 
-function InfoCard({
-  label,
-  value,
-  highlight,
-}: {
+
+
+
+
+interface InfoCardProps {
   label: string;
   value: string;
+  icon: string;
   highlight?: "success" | "warning" | "danger";
-}) {
-  const color =
-    highlight === "danger"
-      ? "#f87171"
-      : highlight === "warning"
-        ? "#fbbf24"
+}
+function InfoCard({label,value,icon,highlight,}: InfoCardProps) {
+  const colorClass =highlight === "danger"? "text-red-500": highlight === "warning"
+        ? "text-amber-500"
         : highlight === "success"
-          ? "#34d399"
-          : "#f1f5f9";
+          ? "text-emerald-500"
+          : "text-foreground";
 
   return (
-    <div className="stat-card">
-      <div className="stat-label">{label}</div>
-      <div className="stat-value" style={{ fontSize: "1.25rem", color }}>
-        {value}
-      </div>
-    </div>
+    <Card className="bg-card/60 border-white/5 shadow-sm hover:bg-card/80 transition-colors">
+      <CardContent className="p-5 flex items-start gap-4">
+        <div className="text-2xl mt-1 opacity-80">{icon}</div>
+        <div>
+          <div className="text-sm font-medium text-muted-foreground mb-1">{label}</div>
+          <div className={`text-xl font-bold ${colorClass}`}>
+            {value}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
+// turn InfoCard into component

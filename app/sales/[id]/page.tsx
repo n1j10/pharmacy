@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSaleById } from "@/lib/actions/sale-actions";
 import PrintButton from "@/components/ui/print-button";
+import type { Prisma } from "../../../generated/prisma/client";
 
 export default async function SaleDetailPage({
   params,
@@ -16,7 +17,11 @@ export default async function SaleDetailPage({
     notFound();
   }
 
-  const sale = result.data;
+  type SaleWithDetails = Prisma.SaleGetPayload<{
+    include: { soldBy: true; items: { include: { medicine: true } } };
+  }>;
+
+  const sale = result.data as SaleWithDetails;
 
   return (
     <div className="page-container fade-in" dir="rtl">

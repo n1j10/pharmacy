@@ -4,6 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
 
 const navItems = [
   { href: "/", icon: "🏠", label: "لوحة التحكم" },
@@ -34,77 +37,91 @@ export default function Sidebar() {
 
   return (
     <>
-      <button
-        type="button"
-        className="mobile-menu-btn"
+      <Button
+        variant="outline"
+        size="icon"
+        className="fixed top-4 right-4 z-50 md:hidden bg-card border-border"
         onClick={() => setOpen(true)}
         aria-label="فتح القائمة"
       >
-        ☰
-      </button>
+        <Menu className="h-5 w-5" />
+      </Button>
 
       {open && (
-        <div className="sidebar-overlay" onClick={() => setOpen(false)} />
+        <div 
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden" 
+          onClick={() => setOpen(false)} 
+        />
       )}
 
-      <aside className={`sidebar ${open ? "open" : ""}`}>
-        <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">💊</div>
-          <div className="sidebar-logo-text">
-            <span className="sidebar-logo-name">PharmaSys</span>
-            <span className="sidebar-logo-sub">نظام إدارة الصيدلية</span>
+      <aside 
+        className={cn(
+          "fixed top-0 right-0 z-50 h-screen w-64 flex flex-col bg-card border-l border-border transform transition-transform duration-200 ease-in-out md:translate-x-0 overflow-y-auto",
+          open ? "translate-x-0" : "translate-x-full"
+        )}
+      >
+        <div className="flex items-center gap-3 p-6 border-b border-border">
+          <div className="text-3xl">💊</div>
+          <div className="flex flex-col">
+            <span className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent leading-tight">PharmaSys</span>
+            <span className="text-xs text-muted-foreground font-medium">نظام إدارة الصيدلية</span>
           </div>
         </div>
 
-        <nav className="sidebar-nav">
-          <span className="nav-section-label">القائمة الرئيسية</span>
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
+          <span className="px-3 pt-2 pb-2 text-[0.65rem] font-bold text-muted-foreground uppercase tracking-wider">
+            القائمة الرئيسية
+          </span>
 
           {navItems
             .filter((item) => !item.adminOnly || role === "ADMIN")
-            .map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className={`nav-item ${isActive(item.href) ? "active" : ""}`}
-              style={
-                item.accent && !isActive(item.href)
-                  ? {
-                      background:
-                        "linear-gradient(135deg, rgba(14,165,233,0.12), rgba(99,102,241,0.08))",
-                      border: "1px solid rgba(14,165,233,0.2)",
-                      color: "#38bdf8",
-                    }
-                  : {}
+            .map((item) => {
+              const active = isActive(item.href);
+              
+              let style = {};
+              if (item.accent && !active) {
+                style = {
+                  background: "linear-gradient(135deg, rgba(14,165,233,0.12), rgba(99,102,241,0.08))",
+                  border: "1px solid rgba(14,165,233,0.2)",
+                  color: "#38bdf8",
+                };
               }
-            >
-              <span className="nav-icon">{item.icon}</span>
-              <span>{item.label}</span>
-            </Link>
-          ))}
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  style={style}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold transition-all relative overflow-hidden mb-1",
+                    active 
+                      ? "bg-primary/10 text-primary border border-primary/20" 
+                      : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                  )}
+                >
+                  <span className="text-lg w-6 text-center">{item.icon}</span>
+                  <span>{item.label}</span>
+                  {active && (
+                    <span className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-3/5 bg-primary rounded-l-sm shadow-[0_0_10px_rgba(14,165,233,0.6)]" />
+                  )}
+                </Link>
+              );
+          })}
         </nav>
 
-        <div className="sidebar-footer">
+        <div className="p-4 border-t border-border bg-black/10">
           {session?.user && (
-            <div style={{ marginBottom: "0.75rem" }}>
-              <div className="user-chip">
-                <div className="avatar">
+            <div className="mb-4">
+              <div className="flex items-center gap-3 rounded-xl border border-border bg-background/30 p-2.5 text-sm text-foreground">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent text-white font-bold shadow-md">
                   {(session.user.name || "م").charAt(0).toUpperCase()}
                 </div>
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: "0.8rem",
-                      fontWeight: 600,
-                      color: "#e2e8f0",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
+                <div className="min-w-0">
+                  <div className="text-sm font-bold text-foreground truncate">
                     {session.user.name || "مستخدم"}
                   </div>
-                  <div style={{ fontSize: "0.7rem", color: "#64748b" }}>
+                  <div className="text-[0.75rem] text-muted-foreground font-medium">
                     {roleLabel}
                   </div>
                 </div>
@@ -112,14 +129,14 @@ export default function Sidebar() {
             </div>
           )}
 
-          <button
+          <Button
+            variant="secondary"
+            className="w-full justify-start gap-3 h-10 font-bold border border-white/5 bg-white/5 hover:bg-white/10"
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="btn btn-secondary btn-full"
-            style={{ fontSize: "0.825rem" }}
           >
             <span>🚪</span>
             <span>تسجيل الخروج</span>
-          </button>
+          </Button>
         </div>
       </aside>
     </>

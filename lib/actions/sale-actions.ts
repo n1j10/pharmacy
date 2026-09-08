@@ -8,7 +8,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "../../generated/prisma/client";
 import { getSessionUser, requireAuth } from "@/lib/session";
 
 // ==========================================
@@ -30,16 +30,18 @@ async function checkAvailability(
   medicineId: string,
   requestedQuantity: number
 ) {
-  const batches = await tx.batch.findMany({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const txAny = tx as any;
+  const batches = await txAny.batch.findMany({
     where: {
       medicineId,
       quantity: { gt: 0 },
       expiryDate: { gt: new Date() }, // نتجاهل الدفعات المنتهية الصلاحية
     },
     orderBy: { expiryDate: "asc" }, // FEFO - الأقرب للانتهاء أول
-  });
+  }) as { id: string; quantity: number; expiryDate: Date; medicineId: string }[];
 
-  const totalAvailable = batches.reduce((sum, b) => sum + b.quantity, 0);
+  const totalAvailable = batches.reduce((sum: number, b: { quantity: number }) => sum + b.quantity, 0);
 
   return { batches, totalAvailable };
 }
@@ -87,6 +89,8 @@ export async function createSale(input: {
     // كل شي بالأسفل يصير جوة transaction وحدة
     // إذا فشل أي جزء (مثلاً نقص مخزون بالنص)، كل التغييرات ترجع للخلف تلقائياً
     const sale = await prisma.$transaction(async (tx) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const txAny = tx as any;
       let totalPrice = new Prisma.Decimal(0);
       const saleItemsData: {
         medicineId: string;
@@ -96,9 +100,9 @@ export async function createSale(input: {
 
       // نمر على كل عنصر بالسلة
       for (const item of items) {
-        const medicine = await tx.medicine.findUnique({
+        const medicine = await txAny.medicine.findUnique({
           where: { barcode: item.barcode.trim() },
-        });
+        }) as Awaited<ReturnType<typeof prisma.medicine.findUnique>>;
 
         if (!medicine) {
           throw new Error(`ماكو دواء بهذا الباركود: ${item.barcode}`);
@@ -124,7 +128,7 @@ export async function createSale(input: {
 
           const deductFromThisBatch = Math.min(batch.quantity, remainingToDeduct);
 
-          await tx.batch.update({
+          await txAny.batch.update({
             where: { id: batch.id },
             data: { quantity: { decrement: deductFromThisBatch } },
           });
@@ -143,7 +147,7 @@ export async function createSale(input: {
       }
 
       // ننشئ الفاتورة (Sale) مع كل عناصرها (SaleItem) بضربة وحدة
-      const createdSale = await tx.sale.create({
+      const createdSale = await txAny.sale.create({
         data: {
           soldById: sellerId,
           total: totalPrice,
@@ -155,7 +159,7 @@ export async function createSale(input: {
           items: { include: { medicine: true } },
           soldBy: true,
         },
-      });
+      }) as Awaited<ReturnType<typeof prisma.sale.create>>;
 
       return createdSale;
     });
@@ -176,10 +180,7 @@ export async function createSale(input: {
 // جلب سجل المبيعات (للوحة التحكم / التقارير)
 // ==========================================
 
-export async function getSales(options?: {
-  sellerId?: string;
-  fromDate?: Date;
-  toDate?: Date;
+export async function getSales(options?: {sellerId?: string;fromDate?: Date;toDate?: Date;
 }) {
   try {
     const user = await getSessionUser();
@@ -260,7 +261,7 @@ export async function getSalesSummary(options?: {
     });
 
     const totalRevenue = sales.reduce(
-      (sum, s) => sum.add(s.total),
+      (sum: Prisma.Decimal, s: { total: Prisma.Decimal }) => sum.add(s.total),
       new Prisma.Decimal(0)
     );
 
