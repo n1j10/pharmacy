@@ -104,7 +104,7 @@ export default async function DashboardPage() {
             <div className="text-sm font-bold text-muted-foreground mb-1">الأدوية بالمخزن</div>
             <div className="text-2xl font-black">{inventory.medicineCount}</div>
             <div className="text-xs text-muted-foreground mt-1">
-              {inventory.lowStock} منخفض — {inventory.outOfStock} نفذ
+              {inventory.lowStock}  منخفض — {inventory.outOfStock} نفذ
             </div>
           </CardContent>
         </Card>
