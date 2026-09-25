@@ -4,10 +4,10 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/session";
+import { requireAuth } from "@/lib/session";
 
 export async function createCategory(name: string) {
-  const access = await requireAdmin();
+  const access = await requireAuth();
   if (!access.success) return access;
 
   try {
@@ -32,7 +32,7 @@ export async function createCategory(name: string) {
 }
 
 export async function updateCategory(id: string, name: string) {
-  const access = await requireAdmin();
+  const access = await requireAuth();
   if (!access.success) return access;
 
   try {
@@ -60,7 +60,7 @@ export async function updateCategory(id: string, name: string) {
 }
 
 export async function deleteCategory(id: string) {
-  const access = await requireAdmin();
+  const access = await requireAuth();
   if (!access.success) return access;
 
   try {

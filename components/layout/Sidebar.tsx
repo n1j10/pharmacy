@@ -11,7 +11,7 @@ import { Menu } from "lucide-react";
 const navItems = [
   { href: "/", icon: "🏠", label: "لوحة التحكم" },
   { href: "/medicines", icon: "💊", label: "الأدوية" },
-  { href: "/categories", icon: "🗂️", label: "الفئات", adminOnly: true },
+  { href: "/categories", icon: "🗂️", label: "الفئات" },
   { href: "/customers", icon: "👥", label: "الزبائن" },
   { href: "/sales", icon: "🧾", label: "المبيعات" },
   { href: "/sales/new", icon: "➕", label: "بيع جديد", accent: true },
