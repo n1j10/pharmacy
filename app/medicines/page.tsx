@@ -37,7 +37,7 @@ export default async function MedicinesPage({searchParams,}: {searchParams: Prom
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">الأدوية</span>
           </h1>
           <p className="text-muted-foreground mt-1">
-            {medicines.length} دواء مسجل في النظام
+            {medicines.length} دواء مسجل في النظام  
           </p>
         </div>
         {isAdmin && (
