@@ -1,0 +1,243 @@
+// ==========================================
+// Prisma Schema - Pharmacy App
+// ==========================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  SELLER
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  phone         String?   @unique
+  phoneVerified DateTime?
+  image         String?
+  role          Role      @default(SELLER)
+  isActive      Boolean   @default(true)
+  accounts      Account[]
+  sessions      Session[]
+  sales         Sale[]
+  saleReturns   SaleReturn[]
+
+  createdAt DateTime @default(now())
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model OtpCode {
+  id         String   @id @default(cuid())
+  identifier String
+  code       String
+  expiresAt  DateTime
+  consumed   Boolean  @default(false)
+  attempts   Int      @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([identifier])
+}
+
+model PharmacySettings {
+  id            String @id
+  pharmacyName  String
+  phone         String?
+  address       String?
+  receiptFooter String?
+  currency      String @default("د.ع")
+
+  updatedAt DateTime @updatedAt
+}
+
+model InvoiceCounter {
+  year Int @id
+  last Int @default(0)
+}
+
+model Customer {
+  id      String  @id @default(cuid())
+  name    String
+  phone   String? @unique
+  notes   String?
+  sales   Sale[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  medicines Medicine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Medicine {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  barcode      String   @unique
+  price        Decimal  @db.Decimal(10, 2)
+  unit         String?
+  manufacturer String?
+  imageUrl     String?
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  batches   Batch[]
+  saleItems SaleItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([barcode])
+  @@index([categoryId])
+}
+
+model Batch {
+  id         String   @id @default(cuid())
+  medicineId String
+  medicine   Medicine @relation(fields: [medicineId], references: [id])
+  quantity   Int
+  expiryDate DateTime
+  receivedAt DateTime @default(now())
+  costPrice  Decimal? @db.Decimal(10, 2)
+
+  deductions SaleDeduction[]
+
+  createdAt DateTime @default(now())
+
+  @@index([medicineId])
+  @@index([expiryDate])
+}
+
+model Sale {
+  id             String        @id @default(cuid())
+  invoiceNumber  String        @unique
+  soldById       String
+  soldBy         User          @relation(fields: [soldById], references: [id])
+  customerId     String?
+  customer       Customer?     @relation(fields: [customerId], references: [id])
+  items          SaleItem[]
+  returns        SaleReturn[]
+  subtotal       Decimal       @db.Decimal(10, 2)
+  discount       Decimal       @default(0) @db.Decimal(10, 2)
+  total          Decimal       @db.Decimal(10, 2)
+  paymentMethod  PaymentMethod @default(CASH)
+
+  createdAt DateTime @default(now())
+
+  @@index([soldById])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model SaleItem {
+  id          String          @id @default(cuid())
+  saleId      String
+  sale        Sale            @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  medicineId  String
+  medicine    Medicine        @relation(fields: [medicineId], references: [id])
+  quantity    Int
+  priceAtSale Decimal         @db.Decimal(10, 2)
+  deductions  SaleDeduction[]
+  returnItems SaleReturnItem[]
+
+  @@index([saleId])
+  @@index([medicineId])
+}
+
+model SaleDeduction {
+  id               String   @id @default(cuid())
+  saleItemId       String
+  saleItem         SaleItem @relation(fields: [saleItemId], references: [id], onDelete: Cascade)
+  batchId          String
+  batch            Batch    @relation(fields: [batchId], references: [id])
+  quantity         Int
+  returnedQuantity Int      @default(0)
+  costPrice        Decimal? @db.Decimal(10, 2)
+
+  @@index([saleItemId])
+  @@index([batchId])
+}
+
+model SaleReturn {
+  id           String           @id @default(cuid())
+  saleId       String
+  sale         Sale             @relation(fields: [saleId], references: [id])
+  returnedById String
+  returnedBy   User             @relation(fields: [returnedById], references: [id])
+  total        Decimal          @db.Decimal(10, 2)
+  items        SaleReturnItem[]
+
+  createdAt DateTime @default(now())
+
+  @@index([saleId])
+}
+
+model SaleReturnItem {
+  id           String     @id @default(cuid())
+  saleReturnId String
+  saleReturn   SaleReturn @relation(fields: [saleReturnId], references: [id], onDelete: Cascade)
+  saleItemId   String
+  saleItem     SaleItem   @relation(fields: [saleItemId], references: [id])
+  quantity     Int
+
+  @@index([saleReturnId])
+  @@index([saleItemId])
+}
