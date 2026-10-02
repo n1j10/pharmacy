@@ -1,9 +1,12 @@
 "use server";
 
+// إعدادات الصيدلية (سجل واحد فقط ID ثابت).
+
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/session";
 import { SETTINGS_ID } from "@/lib/types";
+import { ok, fail } from "./helpers";
 
 export async function updateSettings(input: {
   pharmacyName: string;
@@ -15,35 +18,33 @@ export async function updateSettings(input: {
   const access = await requireAdmin();
   if (!access.success) return access;
 
-  try {
-    if (!input.pharmacyName.trim()) {
-      return { success: false, error: "اسم الصيدلية مطلوب" } as const;
-    }
+  const pharmacyName = input.pharmacyName.trim();
+  if (!pharmacyName) {
+    return fail("اسم الصيدلية مطلوب");
+  }
 
+  // القيم بعد التنظيف (الفارغ يصير null، والعملة الافتراضية د.ع)
+  const data = {
+    pharmacyName,
+    phone: input.phone?.trim() || null,
+    address: input.address?.trim() || null,
+    receiptFooter: input.receiptFooter?.trim() || null,
+    currency: input.currency?.trim() || "د.ع",
+  };
+
+  try {
+    // upsert = إذا السجل موجود يعدله، وإذا مو موجود ينشئه
     const settings = await prisma.pharmacySettings.upsert({
       where: { id: SETTINGS_ID },
-      create: {
-        id: SETTINGS_ID,
-        pharmacyName: input.pharmacyName.trim(),
-        phone: input.phone?.trim() || null,
-        address: input.address?.trim() || null,
-        receiptFooter: input.receiptFooter?.trim() || null,
-        currency: input.currency?.trim() || "د.ع",
-      },
-      update: {
-        pharmacyName: input.pharmacyName.trim(),
-        phone: input.phone?.trim() || null,
-        address: input.address?.trim() || null,
-        receiptFooter: input.receiptFooter?.trim() || null,
-        currency: input.currency?.trim() || "د.ع",
-      },
+      create: { id: SETTINGS_ID, ...data },
+      update: data,
     });
 
     revalidatePath("/");
     revalidatePath("/settings");
     revalidatePath("/sales");
-    return { success: true, data: settings } as const;
+    return ok(settings);
   } catch {
-    return { success: false, error: "فشل حفظ الإعدادات" } as const;
+    return fail("فشل حفظ الإعدادات");
   }
 }

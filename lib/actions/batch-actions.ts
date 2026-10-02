@@ -1,10 +1,18 @@
 "use server";
 
-// كتابة الدفعات. الكمية وتاريخ الانتهاء وسعر التكلفة مصدر المخزون.
+// الدفعات (Batches): كل دفعة إلها كمية وتاريخ انتهاء وسعر تكلفة.
+// المدير فقط يكدر يضيف / يعدل / يحذف.
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/session";
+import { ok, fail } from "./helpers";
+
+// تحديث صفحات الأدوية بعد أي تغيير بالدفعات
+function refreshMedicinePages(medicineId: string) {
+  revalidatePath("/medicines");
+  revalidatePath(`/medicines/${medicineId}`);
+}
 
 export async function createBatch(input: {
   medicineId: string;
@@ -15,16 +23,16 @@ export async function createBatch(input: {
   const access = await requireAdmin();
   if (!access.success) return access;
 
-  try {
-    if (input.quantity <= 0) {
-      return { success: false, error: "الكمية يجب تكون أكبر من صفر" } as const;
-    }
+  if (input.quantity <= 0) {
+    return fail("الكمية يجب تكون أكبر من صفر");
+  }
 
+  try {
     const medicine = await prisma.medicine.findUnique({
       where: { id: input.medicineId },
     });
     if (!medicine) {
-      return { success: false, error: "الدواء غير موجود" } as const;
+      return fail("الدواء غير موجود");
     }
 
     const batch = await prisma.batch.create({
@@ -36,11 +44,10 @@ export async function createBatch(input: {
       },
     });
 
-    revalidatePath("/medicines");
-    revalidatePath(`/medicines/${input.medicineId}`);
-    return { success: true, data: batch } as const;
+    refreshMedicinePages(input.medicineId);
+    return ok(batch);
   } catch {
-    return { success: false, error: "فشل إضافة الدفعة" } as const;
+    return fail("فشل إضافة الدفعة");
   }
 }
 
@@ -51,11 +58,11 @@ export async function updateBatch(
   const access = await requireAdmin();
   if (!access.success) return access;
 
-  try {
-    if (input.quantity !== undefined && input.quantity < 0) {
-      return { success: false, error: "الكمية ماكدر تكون سالبة" } as const;
-    }
+  if (input.quantity !== undefined && input.quantity < 0) {
+    return fail("الكمية ماكدر تكون سالبة");
+  }
 
+  try {
     const batch = await prisma.batch.update({
       where: { id },
       data: {
@@ -65,11 +72,10 @@ export async function updateBatch(
       },
     });
 
-    revalidatePath("/medicines");
-    revalidatePath(`/medicines/${batch.medicineId}`);
-    return { success: true, data: batch } as const;
+    refreshMedicinePages(batch.medicineId);
+    return ok(batch);
   } catch {
-    return { success: false, error: "فشل تعديل الدفعة" } as const;
+    return fail("فشل تعديل الدفعة");
   }
 }
 
@@ -80,22 +86,20 @@ export async function deleteBatch(id: string) {
   try {
     const batch = await prisma.batch.findUnique({ where: { id } });
     if (!batch) {
-      return { success: false, error: "الدفعة غير موجودة" } as const;
+      return fail("الدفعة غير موجودة");
     }
 
-    const used = await prisma.saleDeduction.count({ where: { batchId: id } });
-    if (used > 0) {
-      return {
-        success: false,
-        error: "ماكدر تحذف هذي الدفعة لأنها مرتبطة بمبيعات",
-      } as const;
+    // إذا الدفعة انباعت منها قبل، ماكدر نحذفها
+    const salesCount = await prisma.saleDeduction.count({ where: { batchId: id } });
+    if (salesCount > 0) {
+      return fail("ماكدر تحذف هذي الدفعة لأنها مرتبطة بمبيعات");
     }
 
     await prisma.batch.delete({ where: { id } });
-    revalidatePath("/medicines");
-    revalidatePath(`/medicines/${batch.medicineId}`);
-    return { success: true, data: undefined } as const;
+
+    refreshMedicinePages(batch.medicineId);
+    return ok();
   } catch {
-    return { success: false, error: "فشل حذف الدفعة" } as const;
+    return fail("فشل حذف الدفعة");
   }
 }

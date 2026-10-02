@@ -1,74 +1,80 @@
 "use server";
 
+// الزبائن (Customers): إضافة / تعديل / حذف.
+
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/session";
+import { ok, fail } from "./helpers";
 
-export async function createCustomer(input: {
+type CustomerInput = {
   name: string;
   phone?: string;
   notes?: string;
-}) {
+};
+
+// هل الرقم مستخدم عند زبون ثاني؟ (exceptId = الزبون الحالي أثناء التعديل)
+async function isPhoneUsed(phone: string, exceptId?: string) {
+  const customer = await prisma.customer.findFirst({
+    where: { phone, id: { not: exceptId } },
+  });
+  return customer !== null;
+}
+
+export async function createCustomer(input: CustomerInput) {
   const auth = await requireAuth();
   if (!auth.success) return auth;
 
-  try {
-    const name = input.name.trim();
-    if (!name) return { success: false, error: "اسم الزبون مطلوب" } as const;
+  const name = input.name.trim();
+  const phone = input.phone?.trim() || null;
+  const notes = input.notes?.trim() || null;
 
-    const phone = input.phone?.trim() || null;
-    if (phone) {
-      const exists = await prisma.customer.findUnique({ where: { phone } });
-      if (exists) {
-        return { success: false, error: "رقم الهاتف مستخدم مسبقاً" } as const;
-      }
+  if (!name) {
+    return fail("اسم الزبون مطلوب");
+  }
+
+  try {
+    if (phone && (await isPhoneUsed(phone))) {
+      return fail("رقم الهاتف مستخدم مسبقاً");
     }
 
     const customer = await prisma.customer.create({
-      data: {
-        name,
-        phone,
-        notes: input.notes?.trim() || null,
-      },
+      data: { name, phone, notes },
     });
 
     revalidatePath("/customers");
-    return { success: true, data: customer } as const;
+    return ok(customer);
   } catch {
-    return { success: false, error: "فشل إضافة الزبون" } as const;
+    return fail("فشل إضافة الزبون");
   }
 }
 
-export async function updateCustomer(
-  id: string,
-  input: { name: string; phone?: string; notes?: string }
-) {
+export async function updateCustomer(id: string, input: CustomerInput) {
   const auth = await requireAuth();
   if (!auth.success) return auth;
 
-  try {
-    const name = input.name.trim();
-    if (!name) return { success: false, error: "اسم الزبون مطلوب" } as const;
+  const name = input.name.trim();
+  const phone = input.phone?.trim() || null;
+  const notes = input.notes?.trim() || null;
 
-    const phone = input.phone?.trim() || null;
-    if (phone) {
-      const duplicate = await prisma.customer.findFirst({
-        where: { phone, NOT: { id } },
-      });
-      if (duplicate) {
-        return { success: false, error: "رقم الهاتف مستخدم مسبقاً" } as const;
-      }
+  if (!name) {
+    return fail("اسم الزبون مطلوب");
+  }
+
+  try {
+    if (phone && (await isPhoneUsed(phone, id))) {
+      return fail("رقم الهاتف مستخدم مسبقاً");
     }
 
     const customer = await prisma.customer.update({
       where: { id },
-      data: { name, phone, notes: input.notes?.trim() || null },
+      data: { name, phone, notes },
     });
 
     revalidatePath("/customers");
-    return { success: true, data: customer } as const;
+    return ok(customer);
   } catch {
-    return { success: false, error: "فشل تعديل الزبون" } as const;
+    return fail("فشل تعديل الزبون");
   }
 }
 
@@ -77,18 +83,17 @@ export async function deleteCustomer(id: string) {
   if (!auth.success) return auth;
 
   try {
+    // ماكدر نحذف زبون عنده فواتير
     const salesCount = await prisma.sale.count({ where: { customerId: id } });
     if (salesCount > 0) {
-      return {
-        success: false,
-        error: "ماكدر تحذف الزبون لأن عنده فواتير سابقة",
-      } as const;
+      return fail("ماكدر تحذف الزبون لأن عنده فواتير سابقة");
     }
 
     await prisma.customer.delete({ where: { id } });
+
     revalidatePath("/customers");
-    return { success: true, data: undefined } as const;
+    return ok();
   } catch {
-    return { success: false, error: "فشل حذف الزبون" } as const;
+    return fail("فشل حذف الزبون");
   }
 }
