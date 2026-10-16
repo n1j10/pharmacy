@@ -7,15 +7,16 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import type { SaleDeduction } from "@prisma/client";
-import { requireAuth } from "@/lib/session";
-import { ok, fail } from "./helpers";
+import { saleReturnSchema, parseJsonField, validateFuctionSchema } from "@/lib/schema";
+import { getAuthUser } from "./user";
+import { runAction } from "./helpers";
 
 // يرجع الكمية للدفعات اللي انسحبت منها
-async function putBackToBatches(
+const putBackToBatches = async (
   tx: Prisma.TransactionClient,
   deductions: SaleDeduction[],
-  quantity: number
-) {
+  quantity: number,
+) => {
   let left = quantity; // الكمية اللي بعدها لازم نرجعها
 
   for (const deduction of deductions) {
@@ -38,27 +39,26 @@ async function putBackToBatches(
 
     left -= give;
   }
-}
+};
 
-export async function createSaleReturn(input: {
-  saleId: string;
-  items: { saleItemId: string; quantity: number }[];
-}) {
-  const auth = await requireAuth();
-  if (!auth.success) return auth;
+// إنشاء إرجاع لفاتورة.
+// الأصناف المرجعة تجي من الفورم كنص JSON بحقل items: [{ saleItemId, quantity }]
+export async function createSaleReturnAction(prevState: any, formData: FormData) {
+  const user = await getAuthUser();
 
-  const user = auth.user;
+  return runAction(async () => {
+    const fields = validateFuctionSchema(saleReturnSchema, {
+      ...Object.fromEntries(formData),
+      items: parseJsonField(formData.get("items")),
+    });
 
-  // نتجاهل الأصناف اللي كميتها صفر
-  const requested = (input.items ?? []).filter((item) => item.quantity > 0);
-  if (requested.length === 0) {
-    return fail("حدد كمية للإرجاع");
-  }
+    // نتجاهل الأصناف اللي كميتها صفر
+    const requested = fields.items.filter((item) => item.quantity > 0);
+    if (requested.length === 0) throw new Error("حدد كمية للإرجاع");
 
-  try {
-    const saleReturn = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       const sale = await tx.sale.findUnique({
-        where: { id: input.saleId },
+        where: { id: fields.saleId },
         include: {
           items: {
             include: {
@@ -69,10 +69,7 @@ export async function createSaleReturn(input: {
           },
         },
       });
-
-      if (!sale) {
-        throw new Error("الفاتورة غير موجودة");
-      }
+      if (!sale) throw new Error("الفاتورة غير موجودة");
 
       // البائع يرجع فواتيره فقط، المدير يرجع أي فاتورة
       if (user.role !== "ADMIN" && sale.soldById !== user.id) {
@@ -83,19 +80,14 @@ export async function createSaleReturn(input: {
 
       for (const row of requested) {
         const saleItem = sale.items.find((item) => item.id === row.saleItemId);
-        if (!saleItem) {
-          throw new Error("صنف الفاتورة غير موجود");
-        }
+        if (!saleItem) throw new Error("صنف الفاتورة غير موجود");
 
         // الكمية المتبقية = اللي انباعت - اللي انرجع قبل
-        const alreadyReturned = saleItem.returnItems.reduce(
-          (sum, r) => sum + r.quantity,
-          0
-        );
+        const alreadyReturned = saleItem.returnItems.reduce((sum, r) => sum + r.quantity, 0);
         const remaining = saleItem.quantity - alreadyReturned;
         if (row.quantity > remaining) {
           throw new Error(
-            `كمية الإرجاع لـ "${saleItem.medicine.name}" أكبر من المتبقي (${remaining})`
+            `كمية الإرجاع لـ "${saleItem.medicine.name}" أكبر من المتبقي (${remaining})`,
           );
         }
 
@@ -110,7 +102,7 @@ export async function createSaleReturn(input: {
         returnTotal = returnTotal.sub(discountShare);
       }
 
-      return tx.saleReturn.create({
+      await tx.saleReturn.create({
         data: {
           saleId: sale.id,
           returnedById: user.id,
@@ -122,17 +114,13 @@ export async function createSaleReturn(input: {
             })),
           },
         },
-        include: { items: true },
       });
     });
 
     revalidatePath("/medicines");
     revalidatePath("/sales");
-    revalidatePath(`/sales/${input.saleId}`);
+    revalidatePath(`/sales/${fields.saleId}`);
     revalidatePath("/");
-    return ok(saleReturn);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "فشل الإرجاع";
-    return fail(message);
-  }
+    return "تم الإرجاع بنجاح";
+  });
 }
