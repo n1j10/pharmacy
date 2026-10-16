@@ -80,7 +80,21 @@ export async function registerUser(input: {
     return { success: true, data: { id: user.id, email: user.email } } as const;
   } catch (err) {
     console.error("registerUser error:", err);
-    return { success: false, error: "فشل إنشاء الحساب" } as const;
+    const code = (err as { code?: string })?.code;
+    if (code === "P2002") {
+      return { success: false, error: "هذا البريد مستخدم مسبقاً" } as const;
+    }
+    if (code === "P2021" || code === "P2022") {
+      return {
+        success: false,
+        error: "جداول قاعدة البيانات غير محدّثة — شغّل npx prisma db push",
+      } as const;
+    }
+    const detail =
+      process.env.NODE_ENV === "development" && err instanceof Error
+        ? `: ${err.message.split("\n").filter(Boolean).pop()}`
+        : "";
+    return { success: false, error: `فشل إنشاء الحساب${detail}` } as const;
   }
 }
 
