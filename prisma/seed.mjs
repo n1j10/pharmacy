@@ -74,8 +74,10 @@ const medicines = [
 ];
 
 async function main() {
-  const adminPasswordHash = await bcrypt.hash("Admin@123", 12);
-  const sellerPasswordHash = await bcrypt.hash("Seller@123", 12);
+  // Demo passwords for local development only. Set SEED_ADMIN_PASSWORD /
+  // SEED_SELLER_PASSWORD before seeding any shared or production database.
+  const adminPasswordHash = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD || "Admin@123", 12);
+  const sellerPasswordHash = await bcrypt.hash(process.env.SEED_SELLER_PASSWORD || "Seller@123", 12);
   const categoryIds = new Map();
 
   await prisma.pharmacySettings.upsert({

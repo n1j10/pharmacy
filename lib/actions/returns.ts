@@ -115,6 +115,9 @@ export async function createSaleReturnAction(prevState: any, formData: FormData)
           },
         },
       });
+    }, {
+      // Prevents two concurrent returns from both passing the "remaining quantity" check.
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
 
     revalidatePath("/medicines");
