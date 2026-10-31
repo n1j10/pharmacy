@@ -76,10 +76,15 @@ const takeFromBatches = async (
 
     const take = Math.min(batch.quantity, left);
 
-    await tx.batch.update({
-      where: { id: batch.id },
+    // Conditional decrement: if a concurrent sale already took this stock,
+    // no row matches and the whole transaction is rolled back (no overselling).
+    const { count } = await tx.batch.updateMany({
+      where: { id: batch.id, quantity: { gte: take } },
       data: { quantity: { decrement: take } },
     });
+    if (count === 0) {
+      throw new Error(`المخزون تغيّر أثناء البيع، حاول مرة ثانية ("${medicine.name}")`);
+    }
 
     deductions.push({ batchId: batch.id, quantity: take, costPrice: batch.costPrice });
     left -= take;

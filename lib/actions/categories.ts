@@ -2,7 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { categorySchema, validateFuctionSchema } from "@/lib/schema";
-import { getAuthUser } from "./user";
+import { getAuthUser, getAdminUser } from "./user";
 import { runAction, orRedirect, contains } from "./helpers";
 
 // هل في فئة ثانية بنفس الاسم؟ (exceptId = الفئة الحالية أثناء التعديل)
@@ -33,7 +33,7 @@ export async function fetchSingleCategory(id: string) {
 
 // إضافة فئة جديدة.
 export async function createCategoryAction(prevState: any, formData: FormData) {
-  await getAuthUser();
+  await getAdminUser();
 
   return runAction(async () => {
     const fields = validateFuctionSchema(categorySchema, Object.fromEntries(formData));
@@ -49,7 +49,7 @@ export async function createCategoryAction(prevState: any, formData: FormData) {
 
 // تعديل اسم فئة.
 export async function updateCategoryAction(prevState: any, formData: FormData) {
-  await getAuthUser();
+  await getAdminUser();
 
   return runAction(async () => {
     const categoryId = formData.get("id") as string;
@@ -68,7 +68,7 @@ export async function updateCategoryAction(prevState: any, formData: FormData) {
 
 // حذف فئة.
 export async function deleteCategoryAction({ categoryId }: { categoryId: string }) {
-  await getAuthUser();
+  await getAdminUser();
 
   return runAction(async () => {
     // ماكدر نحذف فئة بيها أدوية

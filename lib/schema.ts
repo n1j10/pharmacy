@@ -25,6 +25,29 @@ const number = (value: unknown, label: string, minimum = 0) => {
   return result;
 };
 
+const integer = (value: unknown, label: string, minimum = 0) => {
+  const result = number(value, label, minimum);
+  if (!Number.isInteger(result)) throw new Error(`${label} must be a whole number`);
+  return result;
+};
+
+const email = (value: unknown) => {
+  const result = text(value, "Email").toLowerCase();
+  if (result.length > 254 || !/^[^s@]+@[^s@]+.[^s@]+$/.test(result)) {
+    throw new Error("Email is invalid");
+  }
+  return result;
+};
+
+// Password policy for new accounts: 8–72 chars (bcrypt only uses the first 72 bytes).
+const password = (value: unknown) => {
+  const result = typeof value === "string" ? value : "";
+  if (result.length < 8 || result.length > 72) {
+    throw new Error("Password must be between 8 and 72 characters");
+  }
+  return result;
+};
+
 const schema = <T>(parse: (input: FormRecord) => T): Schema<T> => ({
   parse(value) {
     return parse(asRecord(value));
@@ -83,16 +106,20 @@ export const batchSchema = schema((input) => ({
 }));
 export const batchUpdateSchema = schema((input) => batchFields(input));
 
-export const userSchema = schema((input) => ({
-  name: text(input.name, "Name"),
-  email: text(input.email, "Email").toLowerCase(),
-  password: text(input.password, "Password"),
-  role: text(input.role, "Role"),
-}));
+export const userSchema = schema((input) => {
+  const role = text(input.role, "Role");
+  if (role !== "ADMIN" && role !== "SELLER") throw new Error("Role is invalid");
+  return {
+    name: text(input.name, "Name"),
+    email: email(input.email),
+    password: password(input.password),
+    role,
+  };
+});
 export const registerSchema = schema((input) => ({
   name: text(input.name, "Name"),
-  email: text(input.email, "Email").toLowerCase(),
-  password: text(input.password, "Password"),
+  email: email(input.email),
+  password: password(input.password),
 }));
 
 export const settingsSchema = schema((input) => ({
@@ -109,7 +136,7 @@ export const saleSchema = schema((input) => {
     const item = asRecord(value);
     return {
       barcode: text(item.barcode, "Barcode"),
-      quantity: number(item.quantity, "Quantity", 1),
+      quantity: integer(item.quantity, "Quantity", 1),
     };
   });
   const paymentMethod = text(input.paymentMethod, "Payment method");
@@ -130,7 +157,7 @@ export const saleReturnSchema = schema((input) => {
     const item = asRecord(value);
     return {
       saleItemId: text(item.saleItemId, "Sale item"),
-      quantity: number(item.quantity, "Quantity"),
+      quantity: integer(item.quantity, "Quantity"),
     };
   });
   return { saleId: text(input.saleId, "Sale"), items };
