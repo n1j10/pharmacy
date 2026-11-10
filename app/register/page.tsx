@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { registerUser } from "@/lib/actions";
+import { registerUserAction } from "@/lib/actions";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -54,16 +54,12 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const result = await registerUser({
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        password,
-      });
+      const formData = new FormData();
+      formData.set("name", name.trim());
+      formData.set("email", email.trim().toLowerCase());
+      formData.set("password", password);
 
-      if (!result.success) {
-        setError(result.error);
-        return;
-      }
+      const result = await registerUserAction(null, formData);
 
       const signInResult = await signIn("credentials", {
         email: email.trim().toLowerCase(),
@@ -72,8 +68,8 @@ export default function RegisterPage() {
       });
 
       if (signInResult?.error) {
-        // الحساب انسوى، بس تسجيل الدخول التلقائي فشل — نوديه لصفحة الدخول
-        router.push("/login");
+        // إما التسجيل فشل (نعرض رسالة الخطأ) أو تسجيل الدخول التلقائي فشل
+        setError(result.message);
         return;
       }
 

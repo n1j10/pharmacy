@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getMedicines, getCategories } from "@/lib/queries";
+import { getMedicines, getCategories } from "@/lib/actions";
 import { getSessionUser } from "@/lib/session";
 import type { Prisma } from "@prisma/client";
 import Container from "@/components/global/Container";

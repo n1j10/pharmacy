@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSales } from "@/lib/queries";
+import { getSales } from "@/lib/actions";
 import type { Prisma } from "@prisma/client";
 import Container from "@/components/global/Container";
 import { Card, CardContent } from "@/components/ui/card";

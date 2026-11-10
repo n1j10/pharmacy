@@ -43,3 +43,24 @@ export async function updateSettingsAction(prevState: any, formData: FormData) {
     return "تم حفظ الإعدادات بنجاح";
   });
 }
+
+// ---- قراءات الصفحات ----
+export async function getSettings() {
+  try {
+    const settings = await prisma.pharmacySettings.upsert({
+      where: { id: SETTINGS_ID },
+      update: {},
+      create: {
+        id: SETTINGS_ID,
+        pharmacyName: "PharmaSys",
+        phone: "",
+        address: "",
+        receiptFooter: "شكراً لزيارتكم",
+        currency: "د.ع",
+      },
+    });
+    return { success: true, data: settings } as const;
+  } catch {
+    return { success: false, error: "فشل جلب إعدادات الصيدلية" } as const;
+  }
+}

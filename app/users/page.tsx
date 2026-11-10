@@ -1,4 +1,4 @@
-import { getUsers } from "@/lib/queries";
+import { getUsers } from "@/lib/actions";
 import Container from "@/components/global/Container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import UserManager from "./user-manager";

@@ -1,4 +1,4 @@
-import { getSettings } from "@/lib/queries";
+import { getSettings } from "@/lib/actions";
 import SettingsForm from "./settings-form";
 import Container from "@/components/global/Container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

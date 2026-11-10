@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getSaleById, getSettings } from "@/lib/queries";
+import { getSaleById, getSettings } from "@/lib/actions";
 import { getSessionUser } from "@/lib/session";
 import PrintButton from "@/components/ui/print-button";
 import ReturnForm from "./return-form";

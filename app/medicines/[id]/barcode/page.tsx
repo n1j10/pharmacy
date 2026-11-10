@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getMedicineById } from "@/lib/queries";
+import { getMedicineById } from "@/lib/actions";
 import BarcodePrint from "./barcode-print";
 
 export default async function MedicineBarcodePage({params}: {params: Promise<{ id: string }>;}) {

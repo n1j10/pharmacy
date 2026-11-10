@@ -1,4 +1,4 @@
-import { getCustomers } from "@/lib/queries";
+import { getCustomers } from "@/lib/actions";
 import CustomerManager from "./customer-manager";
 import Container from "@/components/global/Container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

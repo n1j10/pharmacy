@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import BarcodeScanner from "./barcode-scanner";
 import Cart, { type CartItem } from "./cart";
-import { getMedicineByBarcode, getMedicines, getCustomers } from "@/lib/queries";
+import { getMedicineByBarcode, getMedicines, getCustomers } from "@/lib/actions";
 import { createSale } from "@/lib/actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

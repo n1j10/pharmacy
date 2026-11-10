@@ -1,4 +1,4 @@
-import { getCategories } from "@/lib/queries";
+import { getCategories } from "@/lib/actions";
 import CategoryManager from "./category-manager";
 import Container from "@/components/global/Container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

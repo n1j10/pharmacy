@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getMedicineById, getCategories } from "@/lib/queries";
+import { getMedicineById, getCategories } from "@/lib/actions";
 import EditMedicineForm from "./edit-form";
 import Container from "@/components/global/Container";
 import { Button } from "@/components/ui/button";

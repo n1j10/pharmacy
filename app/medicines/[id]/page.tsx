@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getMedicineById } from "@/lib/queries";
+import { getMedicineById } from "@/lib/actions";
 import { getSessionUser } from "@/lib/session";
 import AddBatchForm from "./add-batch-form";
 import DeleteMedicineButton from "./delete-medicine-button";

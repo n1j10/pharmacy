@@ -5,7 +5,7 @@ import {
   getLowStockMedicines,
   getExpiringSoonBatches,
   getSettings,
-} from "@/lib/queries";
+} from "@/lib/actions";
 import Container from "@/components/global/Container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

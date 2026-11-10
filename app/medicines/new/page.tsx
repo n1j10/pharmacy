@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCategories } from "@/lib/queries";
+import { getCategories } from "@/lib/actions";
 import MedicineForm from "./medicine-form";
 import Container from "@/components/global/Container";
 import { Button } from "@/components/ui/button";

@@ -3,7 +3,7 @@ import {
   getExpiringSoonBatches,
   getInventoryStats,
   getSalesSummary,
-} from "@/lib/queries";
+} from "@/lib/actions";
 import { getSessionUser } from "@/lib/session";
 import type { Prisma } from "@prisma/client";
 import Container from "@/components/global/Container";

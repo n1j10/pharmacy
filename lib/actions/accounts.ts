@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
@@ -89,4 +90,27 @@ export async function setUserActiveAction({
     revalidatePath("/users");
     return "تم تحديث حالة الحساب";
   });
+}
+
+// ---- قراءات الصفحات ----
+export async function getUsers() {
+  const access = await requireAdmin();
+  if (!access.success) return access;
+
+  try {
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+    return { success: true, data: users } as const;
+  } catch {
+    return { success: false, error: "فشل جلب الموظفين" } as const;
+  }
 }
